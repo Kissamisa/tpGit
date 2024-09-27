@@ -31,7 +31,7 @@ jobs:
 
       # Exécuter les tests unitaires avec pytest
       - name: Run tests
-        run: pytest
+        run: pytest -s  # Utiliser l'option -s ici pour permettre la lecture de l'entrée standard
 
       # Sauvegarder les résultats des tests
       - name: Archive test results
