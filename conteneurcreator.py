@@ -7,6 +7,10 @@ from colorama import init, Fore, Style
 # Initialiser colorama pour la coloration du texte
 init(autoreset=True)
 
+# Exception personnalisée
+class NotRootException(Exception):
+    pass
+
 # Fonction pour afficher des messages avec pauses
 def display_message(message, color=Fore.WHITE, pause=2):
     print(color + message)
@@ -22,7 +26,7 @@ if system == "Linux":
         display_message("Vous êtes root.", Fore.GREEN)
     else:
         display_message("Vous n'êtes pas root.", Fore.RED)
-        exit()
+        raise NotRootException("Vous devez être root pour exécuter ce script.")
 
     # Détection de la famille Linux (Debian/RedHat)
     with open("/etc/os-release", "r") as f:
@@ -35,14 +39,14 @@ if system == "Linux":
         display_message("Famille Linux: RedHat/Fedora", Fore.BLUE)
     else:
         display_message("Famille Linux inconnue.", Fore.RED)
-        exit()
+        raise Exception("Famille Linux inconnue.")
 
 elif system == "Windows":
     display_message("Vous êtes sur Windows.", Fore.GREEN)
 
 else:
     display_message("Système d'exploitation non supporté.", Fore.RED)
-    exit()
+    raise Exception("Système d'exploitation non supporté.")
 
 # 2. Docker est-il installé ?
 def is_docker_installed():
@@ -75,7 +79,7 @@ else:
             display_message("Docker installé avec succès via winget.", Fore.GREEN)
         except subprocess.CalledProcessError:
             display_message("Échec de l'installation de Docker via winget.", Fore.RED)
-            exit()
+            raise Exception("Échec de l'installation de Docker.")
 
 # 3. Le service Docker est-il actif ?
 def is_docker_active():
@@ -131,7 +135,7 @@ def create_container():
     subprocess.run(f"docker run -d --name {container_name} --network bridge {volume_option} {image} sleep infinity", shell=True)
     display_message(f"Conteneur {container_name} créé avec succès et joignable par pont.", Fore.GREEN)
 
-   # Installer SSH dans le conteneur
+    # Installer SSH dans le conteneur
     install_ssh(container_name, image)
 
 # 5. Installer SSH et le configurer pour l'accès root
@@ -170,10 +174,16 @@ def install_ssh(container_name, image):
 
     display_message(f"SSH installé et configuré dans le conteneur {container_name}.", Fore.GREEN)
 
-
 # Lancer le processus de création de conteneur
 while True:
-    create_container()
-    another = input(Fore.YELLOW + "Voulez-vous créer un autre conteneur ? (y/n): ").lower()
-    if another != "y":
+    try:
+        create_container()
+        another = input(Fore.YELLOW + "Voulez-vous créer un autre conteneur ? (y/n): ").lower()
+        if another != "y":
+            break
+    except NotRootException as e:
+        display_message(str(e), Fore.RED)
+        break
+    except Exception as e:
+        display_message(f"Une erreur s'est produite: {str(e)}", Fore.RED)
         break
